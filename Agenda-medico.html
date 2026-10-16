@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CliniAgenda | Agenda del Médico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="bootstrap_min.css" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="d-flex flex-column min-vh-100">
+
+  <nav class="navbar navbar-light navbar-expand-lg sticky-top clinic-navbar">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">CliniAgenda</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+        aria-controls="mainNavbar" aria-expanded="false" aria-label="Alternar navegación">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="mainNavbar">
+        <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+          <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+
+          <li th:if="${#authorization.expression('hasRole(''ADMIN'')')}" class="nav-item"><a class="nav-link"
+              href="pacientes.html">Pacientes</a></li>
+          <li th:if="${#authorization.expression('hasRole(''ADMIN'')')}" class="nav-item"><a class="nav-link"
+              href="agenda.html">Agenda</a></li>
+          <li th:if="${#authorization.expression('hasRole(''ADMIN'')')}" class="nav-item"><a class="nav-link"
+              href="paciente-form.html">+ Nuevo paciente</a></li>
+          <li th:if="${#authorization.expression('hasAnyRole(''ADMIN'', ''USER'')')}" class="nav-item"><a
+              class="btn btn-primary ms-lg-2" href="regiscita.html">Reservar cita</a></li>
+          <li class="nav-item"><a class="nav-link" href="agenda-paciente.html">Agenda Paciente</a></li>
+          <li class="nav-item"><a class="nav-link active" href="agenda-medico.html">Agenda Médico</a></li>
+
+          <li th:if="${#authentication.name == 'anonymousUser'}" class="nav-item"><a class="nav-link"
+              href="acceso.html">Registro / Login</a></li>
+
+          <li class="nav-item theme-nav-item ms-lg-2">
+            <button type="button" id="btn-theme-toggle" class="btn btn-outline-secondary btn-sm" aria-label="Alternar modo oscuro">
+              🌙
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-grow-1">
+    <section class="py-5 section-soft">
+      <div class="container">
+
+        <div class="mb-4">
+          <p class="section-eyebrow mb-2">Vista del médico</p>
+          <h2 class="section-title mb-0">Agenda del Médico</h2>
+          <p class="text-secondary section-copy mt-2">
+            Selecciona tu nombre para ver únicamente las citas que tienes asignadas.
+          </p>
+        </div>
+
+        <!-- Selector de identidad (simula la sesión del médico) -->
+        <div
+          class="identity-picker d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+          <div>
+            <span class="identity-role">Estás viendo la agenda de</span>
+            <p class="identity-name mb-0" id="medicoActualNombre">Ningún médico seleccionado</p>
+          </div>
+          <button type="button" class="btn btn-outline-dark" data-bs-toggle="modal"
+            data-bs-target="#modalSeleccionarMedico">
+            Seleccionar mi usuario
+          </button>
+        </div>
+
+        <!-- Mini dashboard del médico -->
+        <div class="row g-4 mb-4">
+          <div class="col-sm-4">
+            <div class="stat-card">
+              <div class="stat-icon">🗓️</div>
+              <strong id="statCitasMedico">0</strong>
+              <span>Citas asignadas</span>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="stat-card stat-green">
+              <div class="stat-icon">⏰</div>
+              <strong id="statCitasHoyMedico">0</strong>
+              <span>Citas para hoy</span>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="stat-card stat-amber">
+              <div class="stat-icon">⏭️</div>
+              <strong id="statProximaCitaMedico">—</strong>
+              <span>Próxima cita</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grid de citas del médico -->
+        <div class="row g-4" id="citasMedicoGrid"></div>
+
+        <div class="col-12" id="citasMedicoVacio">
+          <p class="text-secondary text-center py-4">
+            Selecciona tu usuario arriba para ver tus citas asignadas.
+          </p>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <footer class="py-4 mt-auto">
+    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+      <p class="mb-0 text-secondary">CliniAgenda · Agenda del médico</p>
+    </div>
+  </footer>
+
+  <!-- Modal detalle -->
+  <div class="modal fade" id="citaMedicoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5">Detalle de cita</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-detail">
+            <span class="modal-label">Paciente</span>
+            <p id="medModalPatient" class="mb-3"></p>
+            <span class="modal-label">Servicio</span>
+            <p id="medModalService" class="mb-3"></p>
+            <span class="modal-label">Fecha y hora</span>
+            <p id="medModalSchedule" class="mb-3"></p>
+            <span class="modal-label">Modalidad</span>
+            <p id="medModalMode" class="mb-3"></p>
+            <span class="modal-label">Observaciones</span>
+            <p id="medModalNotes" class="mb-0"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal seleccionar médico (simula el login del médico) -->
+  <div class="modal fade" id="modalSeleccionarMedico" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5">¿Quién eres?</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="text" id="buscarMiMedicoInput" class="form-control mb-3"
+            placeholder="Buscar por nombre o especialidad...">
+          <div id="listaMiMedico" class="list-group" style="max-height: 320px; overflow-y: auto;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="bootstrap_bundle_min.js"></script>
+  <script src="permisos.js"></script>
+  <script src="app.js"></script>
+  <script src="Agenda-medico.js"></script>
+</body>
+
+</html>
